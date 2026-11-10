@@ -355,22 +355,7 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
         <div class="legend"><s class="lw">الوزن (كجم)</s><s class="ll">محيط الخصر (سم)</s></div>
       </div>
 
-      <!-- ═══ الأهداف ═══ -->
-      <div class="card">
-        <div class="h2">🎯 أهدافي <button class="btn mini sec" @click="openSettings()">تعديل</button></div>
-        <div class="goal-row">
-          <div class="gi"><svg class="ic"><use href="#i-scale"/></svg></div>
-          <div class="gt"><div class="gn">الوزن المستهدف</div><div class="gs">{{targetW>0?('من '+fmt(latest?latest.weight:0)+' إلى '+fmt(targetW)):('لم تحدده بعد')}}</div>
-            <div class="prog" :class="progCls(weightProg)"><i :style="{width:clampP(weightProg)+'%'}"></i></div></div>
-          <div class="gv num" :class="weightProg>=100?'grn':''">{{targetW>0?Math.round(clampP(weightProg))+'%':'—'}}</div>
-        </div>
-        <div class="goal-row">
-          <div class="gi"><svg class="ic"><use href="#i-ruler"/></svg></div>
-          <div class="gt"><div class="gn">محيط الخصر المستهدف</div><div class="gs">{{targetL>0?('من '+fmt(latest?latest.waist:0)+' إلى '+fmt(targetL)+' سم'):('لم تحدده بعد')}}</div>
-            <div class="prog" :class="progCls(waistProg)"><i :style="{width:clampP(waistProg)+'%'}"></i></div></div>
-          <div class="gv num" :class="waistProg>=100?'grn':''">{{targetL>0?Math.round(clampP(waistProg))+'%':'—'}}</div>
-        </div>
-      </div>
+
 
       <!-- ═══ السجل ═══ -->
       <div class="card">
