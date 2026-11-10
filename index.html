@@ -290,7 +290,7 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
         <div class="kpi"><div class="t">أقل وزن مسجّل</div><div class="v num grn">{{fmt(minW)}}</div></div>
         <div class="kpi"><div class="t">أقل كرش مسجّل</div><div class="v num grn">{{fmt(minL)}}</div></div>
         <div class="kpi"><div class="t">التغيّر منذ البداية</div><div class="v num" :class="totalD>0?'red':totalD<0?'grn':''">{{totalD===0?'—':(totalD>0?'+':'')+totalD.toFixed(1)}}</div></div>
-        <div class="kpi"><div class="t">عدد القياسات</div><div class="v num">{{entries.length}}</div></div>
+        <div class="kpi"><div class="t">عدد القياسات</div><div class="v num">{{entriesCount}}</div></div>
       </div>
 
       <!-- ═══ الشارت ═══ -->
@@ -338,7 +338,7 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
 
       <!-- ═══ السجل ═══ -->
       <div class="card">
-        <div class="h2">🗂️ كل القياسات <span class="mut" style="font-size:12px;font-weight:400">{{entries.length}} قياس</span></div>
+        <div class="h2">🗂️ كل القياسات <span class="mut" style="font-size:12px;font-weight:400">{{entriesCount}} قياس</span></div>
         <div v-if="!sortedEntries.length" class="empty">
           <span class="ic-big">👛</span>
           <p style="margin-top:8px">لسه مفيش قياسات — ابدأ النهاردة!</p>
@@ -446,9 +446,10 @@ function parseNum(v){const n=parseFloat(String(v).replace(',','.'));return isFin
 const savedTheme=(()=>{try{return localStorage.getItem('rashaqati_theme')}catch(e){return null}})();
 const sysDark=matchMedia('(prefers-color-scheme: dark)').matches;
 
+// ⚠️ IMPORTANT: Initialize arrays as empty [] to prevent "undefined.length" errors
 const S=reactive({
   theme:savedTheme||(sysDark?'dark':'light'),
-  entries:[],
+  entries:[], // Must be an array initially
   sf:{height:'',targetW:'',targetL:''},
   af:{weight:'',waist:'',date:todayISO(),note:''},
   addOpen:false,setOpen:false,range:'30',
@@ -474,20 +475,43 @@ function persist(){try{localStorage.setItem('rashaqati_data',JSON.stringify({ent
 function restore(){
   try{const raw=localStorage.getItem('rashaqati_data');if(!raw)return;
     const d=JSON.parse(raw);
+    // Ensure entries is always an array
     if(Array.isArray(d.entries))S.entries=d.entries.filter(e=>e&&e.date!=null&&parseNum(e.weight)!=null&&parseNum(e.waist)!=null);
+    else S.entries=[]; 
+    
     if(d.sf)Object.assign(S.sf,d.sf);
-  }catch(e){}
+  }catch(e){S.entries=[];}
 }
 
-/* ═══ حسابات ═══ */
-const sortedEntries=computed(()=>[...S.entries].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0));
+/* ═══ حسابات آمنة ═══ */
+// Safe accessors that handle empty/null states gracefully
+const entriesCount=computed(()=>Array.isArray(S.entries)?S.entries.length:0);
+
+const sortedEntries=computed(()=>{
+  if(!Array.isArray(S.entries)||S.entries.length===0)return [];
+  return [...S.entries].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+});
+
 const latest=computed(()=>sortedEntries.value[0]||null);
 const prevEntry=computed(()=>sortedEntries.value[1]||null);
 const firstEntry=computed(()=>sortedEntries.value[sortedEntries.value.length-1]||null);
-const minW=computed(()=>S.entries.length?Math.min(...S.entries.map(e=>+e.weight)):0);
-const minL=computed(()=>S.entries.length?Math.min(...S.entries.map(e=>+e.waist)):0);
-const totalD=computed(()=>{if(!latest.value||!firstEntry.value)return 0;return +latest.value.weight-+firstEntry.value.weight});
-const dWeight=computed(()=>{if(!latest.value||!prevEntry.value)return 0;return +latest.value.weight-+prevEntry.value.weight});
+
+const minW=computed(()=>{
+  if(!Array.isArray(S.entries)||S.entries.length===0)return 0;
+  return Math.min(...S.entries.map(e=>+e.weight));
+});
+const minL=computed(()=>{
+  if(!Array.isArray(S.entries)||S.entries.length===0)return 0;
+  return Math.min(...S.entries.map(e=>+e.waist));
+});
+const totalD=computed(()=>{
+  if(!latest.value||!firstEntry.value)return 0;
+  return +latest.value.weight-+firstEntry.value.weight;
+});
+const dWeight=computed(()=>{
+  if(!latest.value||!prevEntry.value)return 0;
+  return +latest.value.weight-+prevEntry.value.weight;
+});
 
 const targetW=computed(()=>parseNum(S.sf.targetW)||0);
 const targetL=computed(()=>parseNum(S.sf.targetL)||0);
@@ -496,8 +520,21 @@ const heightCm=computed(()=>parseNum(S.sf.height)||0);
 function bmiOf(w){if(!heightCm.value||!w)return '—';const h=heightCm.value/100;return (w/(h*h)).toFixed(1)}
 function bmiZone(b){if(b==='—')return '';const n=+b;return n<18.5?'نحافة':n<25?'طبيعي':n<30?'زيادة':'سمنة'}
 function bmiClass(b){if(b==='—')return '';const n=+b;return n<18.5?'amb':n<25?'grn':n<30?'amb':'red'}
-function weightProg(){if(!targetW.value||!latest.value)return 0;const start=+firstEntry.value.weight,now=+latest.value.weight;const tot=start-targetW.value;if(Math.abs(tot)<0.01)return 100;return clamp(((start-now)/(start-targetW.value))*100,0,100)}
-function waistProg(){if(!targetL.value||!latest.value)return 0;const start=+firstEntry.value.waist;const tot=start-targetL.value;if(Math.abs(tot)<0.01)return 100;return clamp(((start-(+latest.value.waist))/tot)*100,0,100)}
+
+function weightProg(){
+  if(!targetW.value||!latest.value||!firstEntry.value)return 0;
+  const start=+firstEntry.value.weight,now=+latest.value.weight;
+  const tot=start-targetW.value;
+  if(Math.abs(tot)<0.01)return 100;
+  return clamp(((start-now)/(start-targetW.value))*100,0,100);
+}
+function waistProg(){
+  if(!targetL.value||!latest.value||!firstEntry.value)return 0;
+  const start=+firstEntry.value.waist;
+  const tot=start-targetL.value;
+  if(Math.abs(tot)<0.01)return 100;
+  return clamp(((start-(+latest.value.waist))/tot)*100,0,100);
+}
 function clampP(p){return Math.round(clamp(p,0,100))}
 function progCls(p){return p>=100?'':p>=50?'warn':'bad'}
 
@@ -507,15 +544,23 @@ function fullDate(d){const dt=new Date(d+'T12:00:00');return new Intl.DateTimeFo
 function relLabel(d){const diff=Math.round((new Date(todayISO()+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);return diff<=0?'اليوم':diff===1?'أمس':'منذ '+diff+' يوم'}
 const todayLabel=computed(()=>{const d=new Date();return new Intl.DateTimeFormat('ar-EG-u-nu-latn',{weekday:'long',day:'numeric',month:'long'}).format(d)});
 
-/* ═══ شارت ═══ */
+/* ═══ شارت آمن ═══ */
 const CW=680,CH=260,PAD=44,PADR=14,PADB=28;
+
 const chartData=computed(()=>{
+  if(!Array.isArray(S.entries)||S.entries.length<2)return [];
   let list=[...S.entries].sort((a,b)=>a.date<b.date?-1:1);
-  if(S.range!=='all'){const cut=new Date();cut.setDate(cut.getDate()-(+S.range));list=list.filter(e=>new Date(e.date+'T12:00:00')>=cut)}
+  if(S.range!=='all'){
+    const cut=new Date();cut.setDate(cut.getDate()-(+S.range));
+    list=list.filter(e=>new Date(e.date+'T12:00:00')>=cut);
+  }
   return list;
 });
+
 const scales=computed(()=>{
-  const d=chartData.value;if(d.length<2)return null;
+  const d=chartData.value;
+  if(!Array.isArray(d)||d.length<2)return null;
+  
   const ws=d.map(e=>+e.weight),ls=d.map(e=>+e.waist);
   let wMin=Math.min(...ws),wMax=Math.max(...ws);
   if(targetW.value>0){wMin=Math.min(wMin,targetW.value-2);wMax=Math.max(wMax,targetW.value+2)}
@@ -523,26 +568,34 @@ const scales=computed(()=>{
   const lMin=Math.min(...ls),lMax=Math.max(...ls),lp=lMax-lMin||1;
   return {wMin,wMax,lMin:lMin-lp*.15,lMax:lMax+lp*.15};
 });
+
 function yOf(w){const sc=scales.value;if(!sc)return 0;return PADB+(CH-PADB-PAD)*(1-(w-sc.wMin)/(sc.wMax-sc.wMin))}
 function yLOf(l){const sc=scales.value;if(!sc)return 0;return PADB+(CH-PADB-PAD)*(1-(l-sc.lMin)/(sc.lMax-sc.lMin))}
+
 const chartPts=computed(()=>{
-  const d=chartData.value,sc=scales.value;if(!sc||d.length<2)return [];
+  const d=chartData.value,sc=scales.value;
+  if(!sc||!Array.isArray(d)||d.length<2)return [];
   const n=d.length,stepX=(CW-PAD-PADR)/(n-1);
   return d.map((e,i)=>({x:PAD+i*stepX,yw:yOf(+e.weight),yl:yLOf(+e.waist),date:e.date}));
 });
+
 const weightPath=computed(()=>chartPts.value.map(p=>p.x+','+p.yw).join(' '));
 const waistPath=computed(()=>chartPts.value.map(p=>p.x+','+p.yl).join(' '));
+
 const gridY=computed(()=>{
-  const sc=scales.value;if(!sc)return [];
+  const sc=scales.value;
+  if(!sc)return [];
   const out=[],steps=4;
   for(let i=0;i<=steps;i++){const val=sc.wMin+(sc.wMax-sc.wMin)*(i/steps);out.push({y:yOf(val),label:Math.round(val)})}
   return out;
 });
+
 const chartLabels=computed(()=>{
-  const pts=chartPts.value;if(pts.length<2)return [];
+  const pts=chartPts.value;
+  if(!Array.isArray(pts)||pts.length<2)return [];
   const n=pts.length,maxL=5,step=Math.max(1,Math.ceil(n/maxL)),out=[];
   for(let i=0;i<n;i+=step)out.push({x:pts[i].x,t:shortDate(pts[i].date)});
-  if(out[out.length-1].x!==pts[n-1].x)out.push({x:pts[n-1].x,t:shortDate(pts[n-1].date)});
+  if(out[out.length-1]?.x!==pts[n-1]?.x&&pts[n-1])out.push({x:pts[n-1].x,t:shortDate(pts[n-1].date)});
   return out;
 });
 
@@ -599,6 +652,7 @@ createApp({setup(){
     chartPts,chartLabels,gridY,weightPath,waistPath,yOf,CW,CH,PAD,PADR,PADB,
     sortedEntries,shortDate,fullDate,sign:(d)=>(d>0?'+':'')+d.toFixed(1),
     deltaCls:(d)=>d>0.05?'delta-up':d<-0.05?'delta-dn':'delta-eq',
+    entriesCount,
     openAdd,openSettings,nudge,copyLast,validNew,saveEntry,remove,saveSettings,wipeAll,
     setTheme,toggleTheme};
 }}).mount('#app');
