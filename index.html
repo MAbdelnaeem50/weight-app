@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<title>رشاقتي · تتبّع الوزن والكرش</title>
+
+<!-- ثيم قبل أول رسم — يمنع الوميض -->
+<script>
+(function(){try{
+  var K='rashaqati_theme',s=localStorage.getItem(K);
+  var sys=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  var t=s||sys;document.documentElement.dataset.theme=t;
+  document.documentElement.style.background=t==='dark'?'#080b10':'#eef2f7';
+}catch(e){}})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+
+<style>
+/* ═══ TOKENS — فاتح ═══ */
+:root{
+  color-scheme:light;
+  --page:#eef2f7;--surface:#fff;--surface-soft:#f6f8fa;--surface-3:#e9eff4;
+  --field:#fff;--ink:#16232e;--mut:#647684;--dim:#8b9aa6;--hair:#e6ebf0;--edge:#dfe6ec;
+  --teal:#0e8a86;--tealbg:#e2f4f3;
+  --green:#157f63;--greenbg:#e7f6f0;
+  --red:#c2414d;--redbg:#fff0f1;
+  --amber:#8f6218;--amberbg:#fff5df;
+  --violet:#5a5fd0;--violetbg:#eef0fc;
+  --sh:0 6px 18px rgba(20,40,60,.06);
+  --shadow-md:0 10px 26px rgba(20,40,60,.09);
+  --shadow-lg:0 18px 44px rgba(20,40,60,.13);
+  --ring:rgba(14,138,134,.16);
+  --accent:linear-gradient(135deg,#0e8a86,#12a5a0);
+  --r:16px;--r-lg:20px;--ease:cubic-bezier(.22,1,.36,1);
+}
+/* ═══ داكن ═══ */
+[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#080b10;--surface:#121a22;--surface-soft:#17222b;--surface-3:#1d2933;
+  --field:#0f171e;--ink:#e8f0f5;--mut:#93a6b3;--dim:#6f8492;--hair:rgba(255,255,255,.07);--edge:rgba(255,255,255,.10);
+  --teal:#4ccbc6;--tealbg:rgba(76,203,198,.13);
+  --green:#5fd6a6;--greenbg:rgba(95,214,166,.13);
+  --red:#ff8894;--redbg:rgba(255,136,148,.13);
+  --amber:#e8bd68;--amberbg:rgba(232,189,104,.13);
+  --violet:#9aa2ff;--violetbg:rgba(154,162,255,.14);
+  --sh:0 8px 22px rgba(0,0,0,.30);
+  --shadow-md:0 12px 30px rgba(0,0,0,.36);
+  --shadow-lg:0 22px 54px rgba(0,0,0,.48);
+  --ring:rgba(76,203,198,.20);
+  --accent:linear-gradient(135deg,#1d8f8a,#4ccbc6);
+}
+
+/* ═══ BASE ═══ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[v-cloak]{display:none}
+html{-webkit-text-size-adjust:100%;background:var(--page)}
+body{font-family:'Cairo',system-ui,sans-serif;background:var(--page);color:var(--ink);font-size:14.5px;line-height:1.6;min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation;background:none;border:0}
+.num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
+.mut{color:var(--mut)}.red{color:var(--red)}.grn{color:var(--green)}.amb{color:var(--amber)}
+::selection{background:color-mix(in srgb,var(--teal) 26%,transparent)}
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--mut) 28%,transparent) transparent}
+*::-webkit-scrollbar{width:7px;height:7px}
+*::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mut) 24%,transparent);border-radius:99px}
+
+/* خلفية ثابتة طبقة واحدة */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(820px 460px at 100% -8%,color-mix(in srgb,var(--teal) 8%,transparent),transparent 62%),
+             radial-gradient(700px 420px at -8% 108%,color-mix(in srgb,var(--violet) 6%,transparent),transparent 60%);}
+
+/* ═══ GLASS ذكي: موبايل solid / ديسكتوب glass ═══ */
+.top,.sheet,.overlay,.bnav{background:color-mix(in srgb,var(--surface) 94%,transparent)}
+[data-theme="dark"] .top,[data-theme="dark"] .sheet,[data-theme="dark"] .bnav{background:color-mix(in srgb,var(--surface) 88%,transparent)}
+@media (hover:hover) and (pointer:fine) and (min-width:900px){
+  .top,.sheet,.bnav{background:color-mix(in srgb,var(--surface) 66%,transparent);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%)}
+  [data-theme="dark"] .top,[data-theme="dark"] .sheet,[data-theme="dark"] .bnav{background:color-mix(in srgb,var(--surface) 56%,transparent)}
+  .overlay{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+}
+
+/* ═══ LAYOUT ═══ */
+.layout{min-height:100dvh;display:flex;flex-direction:column}
+.content{flex:1;padding:6px 14px 26px;max-width:760px;margin-inline:auto;width:100%}
+.cols{display:grid;gap:12px}
+@media(min-width:720px){.cols{grid-template-columns:1fr 1fr}}
+
+.top{position:sticky;top:0;z-index:40;height:64px;margin:10px 10px 12px;border:1px solid var(--edge);border-radius:var(--r-lg);box-shadow:var(--sh);display:flex;align-items:center;gap:10px;padding:0 12px;contain:layout paint}
+.top .brand{display:flex;align-items:center;gap:10px;margin-inline-end:auto}
+.top .logo{width:38px;height:38px;border-radius:13px;flex:none;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:17px;box-shadow:0 6px 16px color-mix(in srgb,var(--teal) 28%,transparent)}
+.top h2{font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.top .sub{font-size:11.5px;color:var(--mut)}
+
+.ic{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ibtn{width:40px;height:40px;border-radius:13px;flex:none;display:grid;place-items:center;background:var(--surface-soft);border:1px solid var(--edge);color:var(--mut);transition:transform .25s var(--ease),background .2s,color .2s,border-color .2s}
+.ibtn:active{transform:scale(.92)}
+@media (hover:hover) and (pointer:fine){.ibtn:hover{color:var(--teal);border-color:color-mix(in srgb,var(--teal) 30%,var(--edge))}}
+
+.card{background:var(--surface);border:1px solid var(--edge);border-radius:var(--r-lg);box-shadow:var(--sh);padding:16px;margin-bottom:12px;contain:layout paint;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+@media (hover:hover) and (pointer:fine){.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}}
+.card .h2{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card .h2 .btn{margin-inline-start:auto}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--edge);border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh);contain:layout paint;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+@media (hover:hover) and (pointer:fine){.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}}
+.kpi .t{font-size:11.5px;color:var(--mut)}
+.kpi .v{font-size:clamp(17px,2.4vw,21px);font-weight:700;margin-top:2px}
+.kpi:has(.v.red){background:var(--redbg);border-color:color-mix(in srgb,var(--red) 22%,var(--edge))}
+.kpi:has(.v.grn){background:var(--greenbg);border-color:color-mix(in srgb,var(--green) 22%,var(--edge))}
+.kpi:has(.v.amb){background:var(--amberbg);border-color:color-mix(in srgb,var(--amber) 20%,var(--edge))}
+
+.btn{height:48px;padding:0 18px;border-radius:15px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px color-mix(in srgb,var(--teal) 24%,transparent);transition:transform .25s var(--ease),filter .2s;border:1px solid transparent}
+@media (hover:hover) and (pointer:fine){.btn:hover{transform:translateY(-2px);filter:brightness(1.05)}}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.55;pointer-events:none}
+.btn.sec{background:var(--surface-soft);color:var(--ink);border-color:var(--edge);box-shadow:none}
+.btn.dgr{background:var(--redbg);color:var(--red);border-color:color-mix(in srgb,var(--red) 26%,var(--edge));box-shadow:none}
+.btn.mini{height:36px;padding:0 13px;font-size:12.5px;border-radius:12px;box-shadow:none}
+
+.fld{margin-bottom:12px}
+.lbl{display:block;font-size:12px;color:var(--mut);margin-bottom:6px}
+.inp{width:100%;height:48px;padding:0 14px;border-radius:14px;background:var(--field);border:1px solid var(--edge);color:var(--ink);font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.inp:focus{border-color:color-mix(in srgb,var(--teal) 55%,transparent);box-shadow:0 0 0 4px var(--ring);background:var(--surface)}
+.inp::placeholder{color:var(--dim)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.seg{display:flex;gap:4px;padding:4px;border-radius:15px;background:var(--surface-soft);border:1px solid var(--edge);margin-bottom:12px}
+.seg button{flex:1;height:38px;border-radius:11px;font-size:13px;font-weight:600;color:var(--mut);transition:all .22s var(--ease)}
+.seg button.on{background:var(--accent);color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--teal) 26%,transparent)}
+
+/* ═══ HERO رقم اليوم ═══ */
+.hero{background:linear-gradient(140deg,var(--tealbg),var(--surface));text-align:center;padding:22px 16px}
+.hero .lb{font-size:12.5px;color:var(--mut)}
+.hero .big{font-size:clamp(40px,12vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 0}
+.hero .big small{font-size:.34em;font-weight:600;color:var(--mut)}
+.hero .chg{display:inline-block;padding:3px 12px;border-radius:99px;background:var(--greenbg);color:var(--green);font-size:12.5px;font-weight:600}
+.hero .chg.neg{background:var(--redbg);color:var(--red)}
+.hero .waist{font-size:14px;color:var(--mut);margin-top:8px}
+.hero .waist b{color:var(--ink);font-size:18px}
+
+/* ═══ أهداف ═══ */
+.goal-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hair)}
+.goal-row:last-child{border-bottom:0}
+.goal-row .gi{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--violetbg);border:1px solid color-mix(in srgb,var(--violet) 18%,var(--edge));color:var(--violet);flex:none}
+.goal-row .gt{flex:1;min-width:0}
+.goal-row .gn{font-size:13.5px;font-weight:600}
+.goal-row .gs{font-size:12px;color:var(--mut)}
+.goal-row .gv{font-weight:700;text-align:left;white-space:nowrap}
+.prog{height:8px;border-radius:9px;background:var(--surface-3);overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;border-radius:9px;background:var(--accent);transition:width .8s var(--ease)}
+.prog.warn i{background:var(--amber)}
+.prog.bad i{background:var(--red)}
+
+/* ═══ شارت SVG ═══ */
+.chartbox{position:relative;width:100%}
+.chartbox svg{width:100%;height:auto;display:block;overflow:visible}
+.cl{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.lw{stroke:var(--teal)}
+.ll{stroke:var(--violet);stroke-dasharray:5 4;opacity:.9}
+.cg{stroke:var(--hair);stroke-width:1}
+.ctxt{font-size:10px;fill:var(--mut);font-family:'Cairo',sans-serif}
+.cdot{fill:var(--surface);stroke-width:2.5}
+.cd-w{stroke:var(--teal)}.cd-l{stroke:var(--violet)}
+.cband{fill:color-mix(in srgb,var(--teal) 10%,transparent)}
+.legend{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--mut);margin-top:8px;flex-wrap:wrap}
+.legend s{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.legend s::before{content:"";width:14px;height:3px;border-radius:9px;background:currentColor}
+.legend .lw{color:var(--teal)}.legend .ll{color:var(--violet)}
+
+/* ═══ سجل ═══ */
+.entry{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid var(--hair);border-radius:14px;transition:background .15s}
+.entry:last-child{border-bottom:0}
+@media (hover:hover) and (pointer:fine){.entry:hover{background:var(--surface-soft)}}
+.entry .ei{width:40px;height:40px;border-radius:13px;flex:none;display:grid;place-items:center;background:var(--tealbg);border:1px solid color-mix(in srgb,var(--teal) 16%,var(--edge));color:var(--teal);font-weight:700;font-size:12px}
+.entry .et{flex:1;min-width:0}
+.entry .en{font-size:13.5px;font-weight:600}
+.entry .es{font-size:12px;color:var(--mut)}
+.entry .ea{text-align:left;white-space:nowrap}
+.entry .ea b{font-size:15px}
+.entry .ea span{font-size:11.5px;color:var(--mut);display:block}
+.delta-up{color:var(--red)}.delta-dn{color:var(--green)}.delta-eq{color:var(--mut)}
+.del{width:32px;height:32px;border-radius:11px;display:grid;place-items:center;color:var(--dim);opacity:0;transform:scale(.7);transition:.25s var(--ease);flex:none}
+.entry:hover .del,.entry:focus-within .del{opacity:1;transform:none}
+@media(hover:none){.del{opacity:1;transform:none}}
+.del:hover{color:#fff;background:rgba(194,65,77,.22)}
+
+.empty{text-align:center;padding:30px 14px;color:var(--mut)}
+.empty .ic-big{font-size:2.4rem;display:inline-block;animation:float 3.4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+
+/* ═══ OVERLAY + SHEET ═══ */
+.overlay{position:fixed;inset:0;z-index:80;background:color-mix(in srgb,var(--page) 40%,#000 30%);opacity:0;pointer-events:none;transition:opacity .24s var(--ease);display:grid;place-items:end center}
+.overlay.open{opacity:1;pointer-events:auto}
+.sheet{width:min(520px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--edge);border-bottom:0;border-radius:26px 26px 0 0;padding:14px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:var(--shadow-lg);transform:translateY(102%);transition:transform .34s var(--ease);will-change:transform}
+.overlay.open .sheet{transform:none}
+@media (min-width:720px){.overlay{place-items:center}.sheet{border-radius:26px;border-bottom:1px solid var(--edge);transform:translateY(22px) scale(.97)}.overlay.open .sheet{transform:none}}
+.sheet h3{font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.grab{width:42px;height:4px;border-radius:9px;background:var(--edge);margin:0 auto 14px}
+.amtbox{display:flex;align-items:center;gap:8px;padding:4px 16px;border-radius:18px;background:var(--field);border:1px solid var(--edge);transition:border-color .2s,box-shadow .2s}
+.amtbox:focus-within{border-color:color-mix(in srgb,var(--teal) 55%,transparent);box-shadow:0 0 0 4px var(--ring)}
+.amtbox input{flex:1;background:none;border:none;outline:none;font-family:'Cairo';font-weight:800;font-size:2rem;letter-spacing:-.03em;padding:6px 0;min-width:0;-moz-appearance:textfield}
+.amtbox input::-webkit-outer-spin-button,.amtbox input::-webkit-inner-spin-button{-webkit-appearance:none}
+.amtbox input::placeholder{color:rgba(120,140,155,.35);font-weight:400}
+.amtbox .cur{color:var(--mut);font-size:1rem;font-weight:600}
+.quick{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.quick button{padding:6px 13px;border-radius:999px;font-size:.75rem;font-weight:600;color:var(--mut);background:var(--surface-soft);border:1px solid var(--edge);transition:.25s var(--ease)}
+.quick button:hover{color:var(--ink);transform:translateY(-2px);background:var(--surface-3)}
+
+/* ═══ FAB ═══ */
+.fab{position:fixed;inset-inline-end:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:50;width:60px;height:60px;border-radius:20px;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 14px 32px color-mix(in srgb,var(--teal) 40%,transparent);transition:transform .25s var(--ease)}
+.fab:active{transform:scale(.92)}
+@media (hover:hover) and (pointer:fine){.fab:hover{transform:translateY(-3px) scale(1.04)}}
+.fab svg{width:26px;height:26px}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:96px;inset-inline:0;z-index:120;display:flex;justify-content:center;pointer-events:none}
+.toast div{background:var(--ink);color:var(--page);padding:11px 20px;border-radius:15px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow-lg);max-width:88%;opacity:0;transform:translateY(14px);transition:opacity .26s var(--ease),transform .26s var(--ease)}
+.toast div.show{opacity:1;transform:none}
+.toast div.err{background:var(--red);color:#fff}
+
+/* ═══ أنيميشن دخول ONE-TIME ═══ */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.view-enter{animation:rise .34s var(--ease) both}
+
+/* ═══ انتقال الثيم — whitelist ضيق ═══ */
+html.theming body,html.theming .top,html.theming .card,html.theming .kpi,
+html.theming .sheet,html.theming .inp,html.theming .seg,html.theming .entry,
+html.theming .goal-row,html.theming .prog,html.theming .hero{
+  transition:background-color .26s var(--ease),border-color .26s var(--ease),color .2s var(--ease),box-shadow .26s var(--ease) !important;
+}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
+@media (update:slow){.view-enter{animation:none}}
+</style>
+</head>
+
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1l-.3-2.6h-4l-.3 2.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L4.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1l.3 2.6h4l.3-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5a7 7 0 0 0 .1-1z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M5 21h14M7 3h10M12 7l-5 8h10z"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></symbol>
+</defs></svg>
+
+<div id="app" v-cloak class="layout">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">⚖️</div>
+      <div><h2>رشاقتي</h2><div class="sub">الوزن · الكرش · الاتجاه</div></div>
+    </div>
+    <button class="ibtn" @click="openSettings()" aria-label="إعدادات"><svg class="ic"><use href="#i-gear"/></svg></button>
+    <button class="ibtn" @click="toggleTheme" :aria-label="S.theme==='dark'?'وضع فاتح':'وضع داكن'">
+      <svg class="ic"><use :href="S.theme==='dark'?'#i-sun':'#i-moon'"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <div class="view-enter">
+
+      <!-- ═══ رقم اليوم ═══ -->
+      <div class="card hero">
+        <div class="lb">{{todayLabel}}</div>
+        <template v-if="latest">
+          <div class="big num">{{fmt(latest.weight)}}<small> كجم</small></div>
+          <span class="chg" :class="{neg:dWeight>0}" v-if="prevEntry">
+            {{dWeight===0?'ثابت':(dWeight>0?'▲ +':'▼ −')+Math.abs(dWeight).toFixed(1)+' كجم'}} عن {{relLabel(prevEntry.date)}}
+          </span>
+          <div class="waist">محيط الخصر: <b class="num">{{fmt(latest.waist)}}</b> سم · BMI: <b class="num">{{bmiOf(latest.weight)}}</b> <span class="badge" :class="bmiClass(bmiOf(latest.weight))">{{bmiZone(bmiOf(latest.weight))}}</span></div>
+        </template>
+        <template v-else>
+          <div class="big" style="font-size:clamp(22px,6vw,30px)">ابدأ بقياسك الأول 📏</div>
+          <p class="mut" style="font-size:13px;margin-top:6px">اضغط الزر ➕ وسجّل وزنك ومحيط كرشك.</p>
+        </template>
+      </div>
+
+      <!-- ═══ ملخص ═══ -->
+      <div class="kpis">
+        <div class="kpi"><div class="t">أقل وزن مسجّل</div><div class="v num grn">{{fmt(minW)}}</div></div>
+        <div class="kpi"><div class="t">أقل كرش مسجّل</div><div class="v num grn">{{fmt(minL)}}</div></div>
+        <div class="kpi"><div class="t">التغيّر منذ البداية</div><div class="v num" :class="totalD>0?'red':totalD<0?'grn':''">{{totalD===0?'—':(totalD>0?'+':'')+totalD.toFixed(1)}}</div></div>
+        <div class="kpi"><div class="t">عدد القياسات</div><div class="v num">{{entries.length}}</div></div>
+      </div>
+
+      <!-- ═══ الشارت ═══ -->
+      <div class="card" v-if="chartPts.length>=2">
+        <div class="h2">📈 اتجاه الوزن والكرش <span class="seg" style="margin:0 0 0 auto;padding:3px;gap:2px">
+          <button :class="{on:S.range==='30'}" @click="S.range='30'" style="height:30px;padding:0 12px;font-size:12px">شهر</button>
+          <button :class="{on:S.range==='90'}" @click="S.range='90'" style="height:30px;padding:0 12px;font-size:12px">٣ شهور</button>
+          <button :class="{on:S.range==='all'}" @click="S.range='all'" style="height:30px;padding:0 12px;font-size:12px">الكل</button>
+        </span></div>
+        <div class="chartbox"><svg :viewBox="'0 0 '+CW+' '+CH" preserveAspectRatio="none">
+          <!-- شبكة أفقية -->
+          <line v-for="(gy,i) in gridY" :key="'g'+i" class="cg" :x1="PAD" :x2="CW-PAD" :y1="gy.y" :y2="gy.y"/>
+          <text v-for="(gy,i) in gridY" :key="'t'+i" class="ctxt" :x="PAD-6" :y="gy.y+3" text-anchor="end">{{gy.label}}</text>
+          <!-- نطاق الهدف -->
+          <rect v-if="targetW>0" class="cband" :x="PAD" :width="CW-2*PAD" :y="yOf(targetW+2)" :height="Math.max(2,yOf(targetW-2)-yOf(targetW+2))"/>
+          <!-- خط الوزن -->
+          <polyline class="cl lw" :points="weightPath"/>
+          <!-- خط الكرش -->
+          <polyline class="cl ll" :points="waistPath"/>
+          <!-- نقاط -->
+          <circle v-for="(p,i) in chartPts" :key="'pw'+i" class="cdot cd-w" :cx="p.x" :cy="p.yw" r="3.5"/>
+          <circle v-for="(p,i) in chartPts" :key="'pl'+i" class="cdot cd-l" :cx="p.x" :cy="p.yl" r="3"/>
+          <!-- تواريخ -->
+          <text v-for="(p,i) in chartLabels" :key="'d'+i" class="ctxt" :x="p.x" :y="CH-6" text-anchor="middle">{{p.t}}</text>
+        </svg></div>
+        <div class="legend"><s class="lw">الوزن (كجم)</s><s class="ll">محيط الخصر (سم)</s></div>
+      </div>
+
+      <!-- ═══ الأهداف ═══ -->
+      <div class="card">
+        <div class="h2">🎯 أهدافي <button class="btn mini sec" @click="openSettings()">تعديل</button></div>
+        <div class="goal-row">
+          <div class="gi"><svg class="ic"><use href="#i-scale"/></svg></div>
+          <div class="gt"><div class="gn">الوزن المستهدف</div><div class="gs">{{targetW>0?('من '+fmt(latest?latest.weight:0)+' إلى '+fmt(targetW)):('لم تحدده بعد')}}</div>
+            <div class="prog" :class="progCls(weightProg)"><i :style="{width:clampP(weightProg)+'%'}"></i></div></div>
+          <div class="gv num" :class="weightProg>=100?'grn':''">{{targetW>0?Math.round(clampP(weightProg))+'%':'—'}}</div>
+        </div>
+        <div class="goal-row">
+          <div class="gi"><svg class="ic"><use href="#i-ruler"/></svg></div>
+          <div class="gt"><div class="gn">محيط الخصر المستهدف</div><div class="gs">{{targetL>0?('من '+fmt(latest?latest.waist:0)+' إلى '+fmt(targetL)+' سم'):('لم تحدده بعد')}}</div>
+            <div class="prog" :class="progCls(waistProg)"><i :style="{width:clampP(waistProg)+'%'}"></i></div></div>
+          <div class="gv num" :class="waistProg>=100?'grn':''">{{targetL>0?Math.round(clampP(waistProg))+'%':'—'}}</div>
+        </div>
+      </div>
+
+      <!-- ═══ السجل ═══ -->
+      <div class="card">
+        <div class="h2">🗂️ كل القياسات <span class="mut" style="font-size:12px;font-weight:400">{{entries.length}} قياس</span></div>
+        <div v-if="!sortedEntries.length" class="empty">
+          <span class="ic-big">👛</span>
+          <p style="margin-top:8px">لسه مفيش قياسات — ابدأ النهاردة!</p>
+        </div>
+        <div v-else>
+          <div class="entry" v-for="(e,i) in sortedEntries" :key="e.id">
+            <div class="ei">{{shortDate(e.date)}}</div>
+            <div class="et">
+              <div class="en num">{{fmt(e.weight)}} كجم · خصر {{fmt(e.waist)}} سم</div>
+              <div class="es">{{fullDate(e.date)}} · BMI {{bmiOf(e.weight)}}</div>
+            </div>
+            <div class="ea" v-if="sortedEntries[i+1]">
+              <b class="num" :class="deltaCls(e.weight-sortedEntries[i+1].weight)">{{sign(e.weight-sortedEntries[i+1].weight)}}</b>
+              <span class="num" :class="deltaCls(e.waist-sortedEntries[i+1].waist)">{{sign(e.waist-sortedEntries[i+1].waist)}} خصر</span>
+            </div>
+            <button class="del" @click="remove(e.id)" aria-label="حذف"><svg class="ic"><use href="#i-trash"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ═══ FAB ═══ -->
+  <button class="fab" @click="openAdd()" aria-label="قياس جديد"><svg class="ic"><use href="#i-plus"/></svg></button>
+
+  <!-- ═══ Sheet: إضافة قياس ═══ -->
+  <div class="overlay" :class="{open:S.addOpen}" @click.self="S.addOpen=false">
+    <form class="sheet" @submit.prevent="saveEntry">
+      <div class="grab"></div>
+      <h3>قياس جديد <button type="button" class="ibtn" style="width:38px;height:38px" @click="S.addOpen=false"><svg class="ic"><use href="#i-x"/></svg></button></h3>
+
+      <div class="fld">
+        <label class="lbl">الوزن (كجم)</label>
+        <div class="amtbox"><input v-model="S.af.weight" type="number" step="0.1" min="1" max="400" inputmode="decimal" placeholder="0.0"><span class="cur">كجم</span></div>
+        <div class="quick">
+          <button type="button" v-for="d in [-2,-1,0.5,1,2]" :key="d" @click="nudge('weight',d)">{{d>0?'+':''}}{{d}}</button>
+          <button type="button" @click="copyLast('weight')">↺ آخر وزن</button>
+        </div>
+      </div>
+
+      <div class="fld">
+        <label class="lbl">محيط الخصر / الكرش (سم)</label>
+        <div class="amtbox"><input v-model="S.af.waist" type="number" step="0.5" min="30" max="250" inputmode="decimal" placeholder="0.0"><span class="cur">سم</span></div>
+        <div class="quick">
+          <button type="button" v-for="d in [-2,-1,1,2]" :key="d" @click="nudge('waist',d)">{{d>0?'+':''}}{{d}}</button>
+          <button type="button" @click="copyLast('waist')">↺ آخر قياس</button>
+        </div>
+      </div>
+
+      <div class="fld">
+        <label class="lbl">التاريخ</label>
+        <input class="inp" v-model="S.af.date" type="date">
+      </div>
+
+      <div class="fld">
+        <label class="lbl">ملاحظة (اختياري)</label>
+        <input class="inp" v-model.trim="S.af.note" maxlength="80" placeholder="مثلاً: بعد رمضان، صيام متقطع…">
+      </div>
+
+      <button class="btn" style="width:100%" :disabled="!validNew">حفظ القياس</button>
+    </form>
+  </div>
+
+  <!-- ═══ Sheet: إعدادات ═══ -->
+  <div class="overlay" :class="{open:S.setOpen}" @click.self="S.setOpen=false">
+    <div class="sheet">
+      <div class="grab"></div>
+      <h3>الإعدادات <button type="button" class="ibtn" style="width:38px;height:38px" @click="S.setOpen=false"><svg class="ic"><use href="#i-x"/></svg></button></h3>
+
+      <div class="fld"><label class="lbl">طولك (سم) — لحساب BMI</label><input class="inp num" v-model="S.sf.height" type="number" min="100" max="250" step="1"></div>
+      <div class="grid2">
+        <div class="fld"><label class="lbl">الوزن المستهدف (كجم)</label><input class="inp num" v-model="S.sf.targetW" type="number" min="1" max="400" step="0.1"></div>
+        <div class="fld"><label class="lbl">الكرش المستهدف (سم)</label><input class="inp num" v-model="S.sf.targetL" type="number" min="30" max="250" step="0.5"></div>
+      </div>
+
+      <div class="fld">
+        <label class="lbl">المظهر</label>
+        <div class="seg" style="margin:0">
+          <button :class="{on:S.theme==='dark'}" @click="setTheme('dark')">🌙 داكن</button>
+          <button :class="{on:S.theme==='light'}" @click="setTheme('light')">☀️ فاتح</button>
+        </div>
+      </div>
+
+      <button class="btn" style="width:100%;margin-bottom:10px" @click="saveSettings">حفظ الإعدادات</button>
+      <button class="btn dgr" style="width:100%" @click="wipeAll">مسح كل البيانات</button>
+      <p class="mut" style="font-size:11.5px;margin-top:10px;text-align:center">كل بياناتك محفوظة محليًا في متصفحك فقط — بدون أي سيرفر.</p>
+    </div>
+  </div>
+
+  <div class="toast"><div :class="{show:S.toast.show,err:S.toast.err}">{{S.toast.msg}}</div></div>
+</div>
+
+<script>
+const {createApp,reactive,computed,onMounted,watch,nextTick}=Vue;
+
+/* ═══ أدوات ═══ */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmt=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:1}).format(Number(n||0));
+const todayISO=()=>new Date().toLocaleDateString('sv'); // YYYY-MM-DD بتوقيت محلي
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function parseNum(v){const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null}
+
+/* ═══ الحالة ═══ */
+const savedTheme=(()=>{try{return localStorage.getItem('rashaqati_theme')}catch(e){return null}})();
+const sysDark=matchMedia('(prefers-color-scheme: dark)').matches;
+
+const S=reactive({
+  theme:savedTheme||(sysDark?'dark':'light'),
+  entries:[],
+  sf:{height:'',targetW:'',targetL:''},
+  af:{weight:'',waist:'',date:todayISO(),note:''},
+  addOpen:false,setOpen:false,range:'30',
+  toast:{show:false,msg:'',err:false}
+});
+
+/* ═══ ثيم ═══ */
+const root=document.documentElement;
+const LOW_END=(navigator.hardwareConcurrency||8)<=4||matchMedia('(update: slow)').matches;
+function applyTheme(t,animate){
+  if(animate&&!LOW_END){root.classList.add('theming');clearTimeout(applyTheme._t);applyTheme._t=setTimeout(()=>root.classList.remove('theming'),300)}
+  root.dataset.theme=t;if(document.body)document.body.dataset.theme=t;
+  try{localStorage.setItem('rashaqati_theme',t)}catch(e){}
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='dark'?'#080b10':'#eef2f7';
+  root.style.background=t==='dark'?'#080b10':'#eef2f7';
+}
+function setTheme(t){S.theme=t}
+function toggleTheme(){S.theme=S.theme==='dark'?'light':'dark'}
+watch(()=>S.theme,t=>applyTheme(t,true),{immediate:true});
+
+/* ═══ تخزين ═══ */
+function persist(){try{localStorage.setItem('rashaqati_data',JSON.stringify({entries:S.entries,sf:S.sf}))}catch(e){}}
+function restore(){
+  try{const raw=localStorage.getItem('rashaqati_data');if(!raw)return;
+    const d=JSON.parse(raw);
+    if(Array.isArray(d.entries))S.entries=d.entries.filter(e=>e&&e.date!=null&&parseNum(e.weight)!=null&&parseNum(e.waist)!=null);
+    if(d.sf)Object.assign(S.sf,d.sf);
+  }catch(e){}
+}
+
+/* ═══ حسابات ═══ */
+const sortedEntries=computed(()=>[...S.entries].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0));
+const latest=computed(()=>sortedEntries.value[0]||null);
+const prevEntry=computed(()=>sortedEntries.value[1]||null);
+const firstEntry=computed(()=>sortedEntries.value[sortedEntries.value.length-1]||null);
+const minW=computed(()=>S.entries.length?Math.min(...S.entries.map(e=>+e.weight)):0);
+const minL=computed(()=>S.entries.length?Math.min(...S.entries.map(e=>+e.waist)):0);
+const totalD=computed(()=>{if(!latest.value||!firstEntry.value)return 0;return +latest.value.weight-+firstEntry.value.weight});
+const dWeight=computed(()=>{if(!latest.value||!prevEntry.value)return 0;return +latest.value.weight-+prevEntry.value.weight});
+
+const targetW=computed(()=>parseNum(S.sf.targetW)||0);
+const targetL=computed(()=>parseNum(S.sf.targetL)||0);
+const heightCm=computed(()=>parseNum(S.sf.height)||0);
+
+function bmiOf(w){if(!heightCm.value||!w)return '—';const h=heightCm.value/100;return (w/(h*h)).toFixed(1)}
+function bmiZone(b){if(b==='—')return '';const n=+b;return n<18.5?'نحافة':n<25?'طبيعي':n<30?'زيادة':'سمنة'}
+function bmiClass(b){if(b==='—')return '';const n=+b;return n<18.5?'amb':n<25?'grn':n<30?'amb':'red'}
+function weightProg(){if(!targetW.value||!latest.value)return 0;const start=+firstEntry.value.weight,now=+latest.value.weight;const tot=start-targetW.value;if(Math.abs(tot)<0.01)return 100;return clamp(((start-now)/(start-targetW.value))*100,0,100)}
+function waistProg(){if(!targetL.value||!latest.value)return 0;const start=+firstEntry.value.waist;const tot=start-targetL.value;if(Math.abs(tot)<0.01)return 100;return clamp(((start-(+latest.value.waist))/tot)*100,0,100)}
+function clampP(p){return Math.round(clamp(p,0,100))}
+function progCls(p){return p>=100?'':p>=50?'warn':'bad'}
+
+/* ═══ تواريخ ═══ */
+function shortDate(d){const dt=new Date(d+'T12:00:00');return new Intl.DateTimeFormat('ar-EG-u-nu-latn',{day:'numeric',month:'short'}).format(dt)}
+function fullDate(d){const dt=new Date(d+'T12:00:00');return new Intl.DateTimeFormat('ar-EG-u-nu-latn',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(dt)}
+function relLabel(d){const diff=Math.round((new Date(todayISO()+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);return diff<=0?'اليوم':diff===1?'أمس':'منذ '+diff+' يوم'}
+const todayLabel=computed(()=>{const d=new Date();return new Intl.DateTimeFormat('ar-EG-u-nu-latn',{weekday:'long',day:'numeric',month:'long'}).format(d)});
+
+/* ═══ شارت ═══ */
+const CW=680,CH=260,PAD=44,PADR=14,PADB=28;
+const chartData=computed(()=>{
+  let list=[...S.entries].sort((a,b)=>a.date<b.date?-1:1);
+  if(S.range!=='all'){const cut=new Date();cut.setDate(cut.getDate()-(+S.range));list=list.filter(e=>new Date(e.date+'T12:00:00')>=cut)}
+  return list;
+});
+const scales=computed(()=>{
+  const d=chartData.value;if(d.length<2)return null;
+  const ws=d.map(e=>+e.weight),ls=d.map(e=>+e.waist);
+  let wMin=Math.min(...ws),wMax=Math.max(...ws);
+  if(targetW.value>0){wMin=Math.min(wMin,targetW.value-2);wMax=Math.max(wMax,targetW.value+2)}
+  const wp=wMax-wMin||1;wMin-=wp*.12;wMax+=wp*.12;
+  const lMin=Math.min(...ls),lMax=Math.max(...ls),lp=lMax-lMin||1;
+  return {wMin,wMax,lMin:lMin-lp*.15,lMax:lMax+lp*.15};
+});
+function yOf(w){const sc=scales.value;if(!sc)return 0;return PADB+(CH-PADB-PAD)*(1-(w-sc.wMin)/(sc.wMax-sc.wMin))}
+function yLOf(l){const sc=scales.value;if(!sc)return 0;return PADB+(CH-PADB-PAD)*(1-(l-sc.lMin)/(sc.lMax-sc.lMin))}
+const chartPts=computed(()=>{
+  const d=chartData.value,sc=scales.value;if(!sc||d.length<2)return [];
+  const n=d.length,stepX=(CW-PAD-PADR)/(n-1);
+  return d.map((e,i)=>({x:PAD+i*stepX,yw:yOf(+e.weight),yl:yLOf(+e.waist),date:e.date}));
+});
+const weightPath=computed(()=>chartPts.value.map(p=>p.x+','+p.yw).join(' '));
+const waistPath=computed(()=>chartPts.value.map(p=>p.x+','+p.yl).join(' '));
+const gridY=computed(()=>{
+  const sc=scales.value;if(!sc)return [];
+  const out=[],steps=4;
+  for(let i=0;i<=steps;i++){const val=sc.wMin+(sc.wMax-sc.wMin)*(i/steps);out.push({y:yOf(val),label:Math.round(val)})}
+  return out;
+});
+const chartLabels=computed(()=>{
+  const pts=chartPts.value;if(pts.length<2)return [];
+  const n=pts.length,maxL=5,step=Math.max(1,Math.ceil(n/maxL)),out=[];
+  for(let i=0;i<n;i+=step)out.push({x:pts[i].x,t:shortDate(pts[i].date)});
+  if(out[out.length-1].x!==pts[n-1].x)out.push({x:pts[n-1].x,t:shortDate(pts[n-1].date)});
+  return out;
+});
+
+/* ═══ إجراءات ═══ */
+let toastT=null;
+function toast(msg,err){S.toast={show:true,msg,err:!!err};clearTimeout(toastT);toastT=setTimeout(()=>S.toast.show=false,2600)}
+
+function openAdd(){
+  S.af={weight:latest.value?String(latest.value.weight):'',waist:latest.value?String(latest.value.waist):'',date:todayISO(),note:''};
+  S.addOpen=true;nextTick(()=>{const i=document.querySelector('.sheet input[type=number]');if(i)i.focus()});
+}
+function openSettings(){S.sf={height:String(S.sf.height||''),targetW:String(S.sf.targetW||''),targetL:String(S.sf.targetL||'')};S.setOpen=true}
+function nudge(field,d){const cur=parseNum(S.af[field])||0;S.af[field]=String(Math.round((cur+d)*10)/10)}
+function copyLast(field){if(latest.value)S.af[field]=String(latest.value[field])}
+
+const validNew=computed(()=>{
+  const w=parseNum(S.af.weight),l=parseNum(S.af.waist);
+  return w!=null&&w>=1&&w<=400&&l!=null&&l>=30&&l<=250&&S.af.date;
+});
+
+function saveEntry(){
+  if(!validNew.value)return toast('اكتب وزن وكرش صحيحين','err');
+  const date=S.af.date;
+  const ex=S.entries.find(e=>e.date===date);
+  const rec={id:ex?ex.id:uid(),date,weight:parseNum(S.af.weight),waist:parseNum(S.af.waist),note:S.af.note||''};
+  if(ex)Object.assign(ex,rec);else S.entries.push(rec);
+  persist();S.addOpen=false;
+  toast(ex?'تم تحديث قياس '+shortDate(date):'تم حفظ قياس '+shortDate(date)+' ✓');
+}
+function remove(id){
+  const e=S.entries.find(x=>x.id===id);if(!e)return;
+  if(!confirm('حذف قياس '+shortDate(e.date)+'؟'))return;
+  S.entries=S.entries.filter(x=>x.id!==id);persist();toast('تم الحذف');
+}
+function saveSettings(){
+  S.sf.height=parseNum(S.sf.height)||'';
+  S.sf.targetW=parseNum(S.sf.targetW)||'';
+  S.sf.targetL=parseNum(S.sf.targetL)||'';
+  persist();S.setOpen=false;toast('تم حفظ الإعدادات');
+}
+function wipeAll(){
+  if(!confirm('سيتم مسح كل القياسات والإعدادات نهائيًا. متأكد؟'))return;
+  S.entries=[];S.sf={height:'',targetW:'',targetL:''};persist();S.setOpen=false;toast('تم مسح كل البيانات');
+}
+
+/* Esc يغلق الـ sheets */
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){S.addOpen=false;S.setOpen=false}});
+
+onMounted(()=>{restore();applyTheme(S.theme,false)});
+
+createApp({setup(){
+  return {S,fmt,todayLabel,latest,prevEntry,dWeight,relLabel,minW,minL,totalD,
+    bmiOf,bmiZone,bmiClass,targetW,targetL,weightProg,waistProg,clampP,progCls,
+    chartPts,chartLabels,gridY,weightPath,waistPath,yOf,CW,CH,PAD,PADR,PADB,
+    sortedEntries,shortDate,fullDate,sign:(d)=>(d>0?'+':'')+d.toFixed(1),
+    deltaCls:(d)=>d>0.05?'delta-up':d<-0.05?'delta-dn':'delta-eq',
+    openAdd,openSettings,nudge,copyLast,validNew,saveEntry,remove,saveSettings,wipeAll,
+    setTheme,toggleTheme};
+}}).mount('#app');
+</script>
+</body>
+</html>
