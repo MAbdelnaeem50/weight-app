@@ -27,11 +27,11 @@
   color-scheme:light;
   --page:#eef2f7;--surface:#fff;--surface-soft:#f6f8fa;--surface-3:#e9eff4;
   --field:#fff;--ink:#16232e;--mut:#647684;--dim:#8b9aa6;--hair:#e6ebf0;--edge:#dfe6ec;
-  --teal:#0e8a86;--tealbg:#e2f4f3;
-  --green:#157f63;--greenbg:#e7f6f0;
-  --red:#c2414d;--redbg:#fff0f1;
-  --amber:#8f6218;--amberbg:#fff5df;
-  --violet:#5a5fd0;--violetbg:#eef0fc;
+  --teal:#0e8a86;--tealbg:#e2f4f3;--teal-glow:rgba(14,138,134,.18);
+  --green:#157f63;--greenbg:#e7f6f0;--green-glow:rgba(21,127,99,.18);
+  --red:#c2414d;--redbg:#fff0f1;--red-glow:rgba(194,65,77,.18);
+  --amber:#8f6218;--amberbg:#fff5df;--amber-glow:rgba(143,98,24,.18);
+  --violet:#5a5fd0;--violetbg:#eef0fc;--violet-glow:rgba(90,95,208,.18);
   --sh:0 6px 18px rgba(20,40,60,.06);
   --shadow-md:0 10px 26px rgba(20,40,60,.09);
   --shadow-lg:0 18px 44px rgba(20,40,60,.13);
@@ -44,11 +44,11 @@
   color-scheme:dark;
   --page:#080b10;--surface:#121a22;--surface-soft:#17222b;--surface-3:#1d2933;
   --field:#0f171e;--ink:#e8f0f5;--mut:#93a6b3;--dim:#6f8492;--hair:rgba(255,255,255,.07);--edge:rgba(255,255,255,.10);
-  --teal:#4ccbc6;--tealbg:rgba(76,203,198,.13);
-  --green:#5fd6a6;--greenbg:rgba(95,214,166,.13);
-  --red:#ff8894;--redbg:rgba(255,136,148,.13);
-  --amber:#e8bd68;--amberbg:rgba(232,189,104,.13);
-  --violet:#9aa2ff;--violetbg:rgba(154,162,255,.14);
+  --teal:#4ccbc6;--tealbg:rgba(76,203,198,.13);--teal-glow:rgba(76,203,198,.22);
+  --green:#5fd6a6;--greenbg:rgba(95,214,166,.13);--green-glow:rgba(95,214,166,.22);
+  --red:#ff8894;--redbg:rgba(255,136,148,.13);--red-glow:rgba(255,136,148,.22);
+  --amber:#e8bd68;--amberbg:rgba(232,189,104,.13);--amber-glow:rgba(232,189,104,.22);
+  --violet:#9aa2ff;--violetbg:rgba(154,162,255,.14);--violet-glow:rgba(154,162,255,.22);
   --sh:0 8px 22px rgba(0,0,0,.30);
   --shadow-md:0 12px 30px rgba(0,0,0,.36);
   --shadow-lg:0 22px 54px rgba(0,0,0,.48);
@@ -143,6 +143,17 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .hero .chg.neg{background:var(--redbg);color:var(--red)}
 .hero .waist{font-size:14px;color:var(--mut);margin-top:8px}
 .hero .waist b{color:var(--ink);font-size:18px}
+
+/* ═══ BMI gauge ═══ */
+.bmi-card{position:relative;overflow:hidden}
+.bmi-ring{width:120px;height:120px;margin:0 auto 10px;position:relative}
+.bmi-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.bmi-track{fill:none;stroke:var(--surface-3);stroke-width:10}
+.bmi-val{fill:none;stroke:url(#bmiGrad);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1s var(--ease)}
+.bmi-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.bmi-num{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.bmi-zone{font-size:11px;color:var(--mut);margin-top:2px}
+.bmi-defs{position:absolute;width:0;height:0}
 
 /* ═══ أهداف ═══ */
 .goal-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hair)}
@@ -277,12 +288,37 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
           <span class="chg" :class="{neg:dWeight>0}" v-if="prevEntry">
             {{dWeight===0?'ثابت':(dWeight>0?'▲ +':'▼ −')+Math.abs(dWeight).toFixed(1)+' كجم'}} عن {{relLabel(prevEntry.date)}}
           </span>
-          <div class="waist">محيط الخصر: <b class="num">{{fmt(latest.waist)}}</b> سم · BMI: <b class="num">{{bmiOf(latest.weight)}}</b> <span class="badge" :class="bmiClass(bmiOf(latest.weight))">{{bmiZone(bmiOf(latest.weight))}}</span></div>
+          <div class="waist">محيط الخصر: <b class="num">{{fmt(latest.waist)}}</b> سم</div>
         </template>
         <template v-else>
           <div class="big" style="font-size:clamp(22px,6vw,30px)">ابدأ بقياسك الأول 📏</div>
           <p class="mut" style="font-size:13px;margin-top:6px">اضغط الزر ➕ وسجّل وزنك ومحيط كرشك.</p>
         </template>
+      </div>
+
+      <!-- ═══ BMI Gauge ═══ -->
+      <div class="card bmi-card" v-if="latest && heightCm>0">
+        <div class="h2">مؤشر كتلة الجسم (BMI)</div>
+        <div class="bmi-ring">
+          <svg viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="bmiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4ccbc6"/>
+                <stop offset="50%" stop-color="#e8bd68"/>
+                <stop offset="100%" stop-color="#ff8894"/>
+              </linearGradient>
+            </defs>
+            <circle class="bmi-track" cx="60" cy="60" r="50"/>
+            <circle class="bmi-val" cx="60" cy="60" r="50" 
+                    :stroke-dasharray="circumference" 
+                    :stroke-dashoffset="bmiOffset"/>
+          </svg>
+          <div class="bmi-center">
+            <div class="bmi-num num">{{currentBMI}}</div>
+            <div class="bmi-zone">{{bmiZone(currentBMI)}}</div>
+          </div>
+        </div>
+        <p class="mut" style="text-align:center;font-size:12px;margin-top:4px">طولك: {{heightCm}} سم</p>
       </div>
 
       <!-- ═══ ملخص ═══ -->
@@ -348,7 +384,7 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
             <div class="ei">{{shortDate(e.date)}}</div>
             <div class="et">
               <div class="en num">{{fmt(e.weight)}} كجم · خصر {{fmt(e.waist)}} سم</div>
-              <div class="es">{{fullDate(e.date)}} · BMI {{bmiOf(e.weight)}}</div>
+              <div class="es">{{fullDate(e.date)}}{{heightCm>0?' · BMI '+computeBMI(e.weight):''}}</div>
             </div>
             <div class="ea" v-if="sortedEntries[i+1]">
               <b class="num" :class="deltaCls(e.weight-sortedEntries[i+1].weight)">{{sign(e.weight-sortedEntries[i+1].weight)}}</b>
@@ -409,10 +445,10 @@ html.theming .goal-row,html.theming .prog,html.theming .hero{
       <div class="grab"></div>
       <h3>الإعدادات <button type="button" class="ibtn" style="width:38px;height:38px" @click="S.setOpen=false"><svg class="ic"><use href="#i-x"/></svg></button></h3>
 
-      <div class="fld"><label class="lbl">طولك (سم) — لحساب BMI</label><input class="inp num" v-model="S.sf.height" type="number" min="100" max="250" step="1"></div>
+      <div class="fld"><label class="lbl">طولك (سم) — لحساب BMI</label><input class="inp num" v-model="S.sf.height" type="number" min="100" max="250" step="1" placeholder="مثلاً: 175"></div>
       <div class="grid2">
-        <div class="fld"><label class="lbl">الوزن المستهدف (كجم)</label><input class="inp num" v-model="S.sf.targetW" type="number" min="1" max="400" step="0.1"></div>
-        <div class="fld"><label class="lbl">الكرش المستهدف (سم)</label><input class="inp num" v-model="S.sf.targetL" type="number" min="30" max="250" step="0.5"></div>
+        <div class="fld"><label class="lbl">الوزن المستهدف (كجم)</label><input class="inp num" v-model="S.sf.targetW" type="number" min="1" max="400" step="0.1" placeholder="مثلاً: 70"></div>
+        <div class="fld"><label class="lbl">الكرش المستهدف (سم)</label><input class="inp num" v-model="S.sf.targetL" type="number" min="30" max="250" step="0.5" placeholder="مثلاً: 90"></div>
       </div>
 
       <div class="fld">
@@ -517,23 +553,44 @@ const targetW=computed(()=>parseNum(S.sf.targetW)||0);
 const targetL=computed(()=>parseNum(S.sf.targetL)||0);
 const heightCm=computed(()=>parseNum(S.sf.height)||0);
 
-function bmiOf(w){if(!heightCm.value||!w)return '—';const h=heightCm.value/100;return (w/(h*h)).toFixed(1)}
-function bmiZone(b){if(b==='—')return '';const n=+b;return n<18.5?'نحافة':n<25?'طبيعي':n<30?'زيادة':'سمنة'}
-function bmiClass(b){if(b==='—')return '';const n=+b;return n<18.5?'amb':n<25?'grn':n<30?'amb':'red'}
+// BMI calculation with safety checks
+function computeBMI(weightKg){
+  const h = heightCm.value;
+  if (!h || h <= 0 || !weightKg || weightKg <= 0) return null;
+  const meters = h / 100;
+  const bmi = weightKg / (meters * meters);
+  return isNaN(bmi) ? null : parseFloat(bmi.toFixed(1));
+}
+
+const currentBMI = computed(() => {
+  if (!latest.value) return null;
+  return computeBMI(+latest.value.weight);
+});
+
+function bmiZone(b){
+  if(b==null||isNaN(b))return 'غير معروف';
+  const n=+b;
+  if(n<18.5)return 'نحافة';
+  if(n<25)return 'طبيعي';
+  if(n<30)return 'زيادة';
+  return 'سمنة';
+}
+
+// Progress calculations with division-by-zero protection
+function safeProgress(start, end, current){
+  const diff = start - end;
+  if(Math.abs(diff) < 0.01) return 100; // Already reached or invalid range
+  const progress = ((start - current) / diff) * 100;
+  return isNaN(progress) ? 0 : clamp(progress, 0, 100);
+}
 
 function weightProg(){
   if(!targetW.value||!latest.value||!firstEntry.value)return 0;
-  const start=+firstEntry.value.weight,now=+latest.value.weight;
-  const tot=start-targetW.value;
-  if(Math.abs(tot)<0.01)return 100;
-  return clamp(((start-now)/(start-targetW.value))*100,0,100);
+  return safeProgress(+firstEntry.value.weight, targetW.value, +latest.value.weight);
 }
 function waistProg(){
   if(!targetL.value||!latest.value||!firstEntry.value)return 0;
-  const start=+firstEntry.value.waist;
-  const tot=start-targetL.value;
-  if(Math.abs(tot)<0.01)return 100;
-  return clamp(((start-(+latest.value.waist))/tot)*100,0,100);
+  return safeProgress(+firstEntry.value.waist, targetL.value, +latest.value.waist);
 }
 function clampP(p){return Math.round(clamp(p,0,100))}
 function progCls(p){return p>=100?'':p>=50?'warn':'bad'}
@@ -646,9 +703,20 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){S.addOpen=false;S.s
 
 onMounted(()=>{restore();applyTheme(S.theme,false)});
 
+// BMI Ring Circumference & Offset
+const circumference = 2 * Math.PI * 50; // radius=50
+const bmiOffset = computed(() => {
+  const bmi = currentBMI.value;
+  if (bmi == null) return circumference;
+  // Map BMI 15-40 to 0-100% of circle
+  const normalized = clamp((bmi - 15) / 25, 0, 1);
+  return circumference * (1 - normalized);
+});
+
 createApp({setup(){
   return {S,fmt,todayLabel,latest,prevEntry,dWeight,relLabel,minW,minL,totalD,
-    bmiOf,bmiZone,bmiClass,targetW,targetL,weightProg,waistProg,clampP,progCls,
+    computeBMI,currentBMI,bmiZone,circumference,bmiOffset,heightCm,
+    targetW,targetL,weightProg,waistProg,clampP,progCls,
     chartPts,chartLabels,gridY,weightPath,waistPath,yOf,CW,CH,PAD,PADR,PADB,
     sortedEntries,shortDate,fullDate,sign:(d)=>(d>0?'+':'')+d.toFixed(1),
     deltaCls:(d)=>d>0.05?'delta-up':d<-0.05?'delta-dn':'delta-eq',
